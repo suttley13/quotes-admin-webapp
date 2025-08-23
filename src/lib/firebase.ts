@@ -22,9 +22,23 @@ export function initializeFirebase() {
   }
 
   try {
-    // Clean and parse the service account JSON
-    const cleanedJson = serviceAccountJson.trim().replace(/\s+/g, ' ');
-    const serviceAccount = JSON.parse(cleanedJson);
+    console.log('Attempting to parse Firebase JSON...');
+    console.log('Character at position 1149:', serviceAccountJson.charAt(1149));
+    console.log('Characters around position 1149:', serviceAccountJson.substring(1140, 1160));
+    
+    // Try to fix common JSON parsing issues
+    let fixedJson = serviceAccountJson
+      .trim()
+      .replace(/\n/g, '')  // Remove actual newlines
+      .replace(/\r/g, '')  // Remove carriage returns
+      .replace(/\t/g, '')  // Remove tabs
+      .replace(/\\/g, '\\\\')  // Escape backslashes first
+      .replace(/\\\\n/g, '\\n')  // Fix double-escaped newlines back to single
+      .replace(/\\\\"/g, '\\"')  // Fix double-escaped quotes back to single
+      .replace(/\\\\\\\\/g, '\\\\');  // Fix quadruple-escaped backslashes
+    
+    console.log('Attempting JSON.parse with fixed string...');
+    const serviceAccount = JSON.parse(fixedJson);
     
     // Fix private key formatting - replace literal \n with actual newlines
     if (serviceAccount.private_key) {
