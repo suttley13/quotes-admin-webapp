@@ -6,15 +6,23 @@ import { isAuthorizedEmail } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await currentUser();
+    // Check for API key authentication (for GitHub Actions)
+    const apiKey = request.headers.get('x-api-key');
+    const isApiKeyAuth = apiKey === process.env.API_SECRET_KEY;
     
-    if (!user?.emailAddresses?.[0]?.emailAddress) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    let user = null;
+    if (!isApiKeyAuth) {
+      // Fall back to Clerk user authentication
+      user = await currentUser();
+      
+      if (!user?.emailAddresses?.[0]?.emailAddress) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
 
-    const email = user.emailAddresses[0].emailAddress;
-    if (!isAuthorizedEmail(email)) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      const email = user.emailAddresses[0].emailAddress;
+      if (!isAuthorizedEmail(email)) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      }
     }
 
     // Generate quote from OpenAI
@@ -31,11 +39,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the quote but don't mark as sent yet
+    const userId = isApiKeyAuth ? 'github-actions' : user?.id;
     const savedQuote = await saveQuote(
       generatedQuote.text,
       generatedQuote.author,
       generatedQuote.biography,
-      user.id
+      userId
     );
 
     return NextResponse.json({
