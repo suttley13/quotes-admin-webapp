@@ -44,28 +44,42 @@ export function initializeFirebase() {
     if (serviceAccount.private_key) {
       console.log('Original private key preview:', serviceAccount.private_key.substring(0, 100));
       
-      // Ensure proper PEM format
+      // Clean up the private key - remove trailing backslashes and fix formatting
       let privateKey = serviceAccount.private_key
         .replace(/\\n/g, '\n')  // Replace literal \n with actual newlines
+        .replace(/\\\s*$/gm, '')  // Remove trailing backslashes at end of lines
         .replace(/\n+/g, '\n')  // Remove duplicate newlines
+        .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+        .replace(/\s*-----BEGIN PRIVATE KEY-----\s*/g, '-----BEGIN PRIVATE KEY-----\n')
+        .replace(/\s*-----END PRIVATE KEY-----\s*/g, '\n-----END PRIVATE KEY-----')
         .trim();
       
-      // Ensure it starts and ends correctly
-      if (!privateKey.startsWith('-----BEGIN PRIVATE KEY-----')) {
-        privateKey = '-----BEGIN PRIVATE KEY-----\n' + privateKey;
-      }
-      if (!privateKey.endsWith('-----END PRIVATE KEY-----')) {
-        privateKey = privateKey + '\n-----END PRIVATE KEY-----';
-      }
+      // Split into header, body, and footer
+      const lines = privateKey.split('\n');
+      const beginIndex = lines.findIndex(line => line.includes('-----BEGIN PRIVATE KEY-----'));
+      const endIndex = lines.findIndex(line => line.includes('-----END PRIVATE KEY-----'));
       
-      // Ensure proper line breaks within the key
-      privateKey = privateKey
-        .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
-        .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----')
-        .replace(/\n+/g, '\n');  // Clean up duplicate newlines
+      if (beginIndex !== -1 && endIndex !== -1) {
+        // Extract just the key content (without headers)
+        const keyContent = lines
+          .slice(beginIndex + 1, endIndex)
+          .join('')
+          .replace(/\s/g, ''); // Remove all whitespace from key content
+        
+        // Rebuild with proper 64-character lines
+        const keyLines = [];
+        for (let i = 0; i < keyContent.length; i += 64) {
+          keyLines.push(keyContent.substr(i, 64));
+        }
+        
+        privateKey = '-----BEGIN PRIVATE KEY-----\n' + 
+                    keyLines.join('\n') + '\n' + 
+                    '-----END PRIVATE KEY-----';
+      }
       
       serviceAccount.private_key = privateKey;
       console.log('Fixed private key preview:', privateKey.substring(0, 100));
+      console.log('Fixed private key line count:', privateKey.split('\n').length);
     }
     
     console.log('Firebase service account parsed successfully');
