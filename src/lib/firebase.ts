@@ -13,6 +13,7 @@ export function initializeFirebase() {
   console.log('- FIREBASE_SERVICE_ACCOUNT_JSON exists:', !!serviceAccountJson);
   console.log('- Length:', serviceAccountJson?.length);
   console.log('- First 50 chars:', serviceAccountJson?.substring(0, 50));
+  console.log('- All env vars starting with FIREBASE:', Object.keys(process.env).filter(key => key.startsWith('FIREBASE')));
   
   if (!serviceAccountJson) {
     console.error('Missing environment variables:');
