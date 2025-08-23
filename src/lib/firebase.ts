@@ -26,45 +26,30 @@ export function initializeFirebase() {
     console.log('Character at position 1149:', serviceAccountJson.charAt(1149));
     console.log('Characters around position 1149:', serviceAccountJson.substring(1140, 1160));
     
-    // Try to fix common JSON parsing issues
-    let fixedJson = serviceAccountJson
-      .trim()
-      .replace(/\n/g, '')  // Remove actual newlines
-      .replace(/\r/g, '')  // Remove carriage returns
-      .replace(/\t/g, '')  // Remove tabs
-      .replace(/\\/g, '\\\\')  // Escape backslashes first
-      .replace(/\\\\n/g, '\\n')  // Fix double-escaped newlines back to single
-      .replace(/\\\\"/g, '\\"')  // Fix double-escaped quotes back to single
-      .replace(/\\\\\\\\/g, '\\\\');  // Fix quadruple-escaped backslashes
+    // Clean the JSON string - remove extra whitespace but preserve the structure
+    let fixedJson = serviceAccountJson.trim();
     
     console.log('Attempting JSON.parse with fixed string...');
     const serviceAccount = JSON.parse(fixedJson);
     
-    // Fix private key formatting - replace literal \n with actual newlines
+    // Fix private key formatting
     if (serviceAccount.private_key) {
       console.log('Original private key preview:', serviceAccount.private_key.substring(0, 100));
       
-      // Clean up the private key - remove trailing backslashes and fix formatting
-      let privateKey = serviceAccount.private_key
-        .replace(/\\n/g, '\n')  // Replace literal \n with actual newlines
-        .replace(/\\\s*$/gm, '')  // Remove trailing backslashes at end of lines
-        .replace(/\n+/g, '\n')  // Remove duplicate newlines
-        .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
-        .replace(/\s*-----BEGIN PRIVATE KEY-----\s*/g, '-----BEGIN PRIVATE KEY-----\n')
-        .replace(/\s*-----END PRIVATE KEY-----\s*/g, '\n-----END PRIVATE KEY-----')
-        .trim();
+      let privateKey = serviceAccount.private_key;
       
-      // Split into header, body, and footer
-      const lines = privateKey.split('\n');
-      const beginIndex = lines.findIndex(line => line.includes('-----BEGIN PRIVATE KEY-----'));
-      const endIndex = lines.findIndex(line => line.includes('-----END PRIVATE KEY-----'));
+      // If the key has literal \n sequences, replace them with actual newlines
+      if (privateKey.includes('\\n')) {
+        privateKey = privateKey.replace(/\\n/g, '\n');
+      }
       
-      if (beginIndex !== -1 && endIndex !== -1) {
-        // Extract just the key content (without headers)
-        const keyContent = lines
-          .slice(beginIndex + 1, endIndex)
-          .join('')
-          .replace(/\s/g, ''); // Remove all whitespace from key content
+      // If the key appears to be on one line with spaces, fix it
+      if (!privateKey.includes('\n') && privateKey.includes(' ')) {
+        // This appears to be a single-line key with spaces - rebuild it properly
+        const keyContent = privateKey
+          .replace('-----BEGIN PRIVATE KEY-----', '')
+          .replace('-----END PRIVATE KEY-----', '')
+          .replace(/\s+/g, ''); // Remove all spaces
         
         // Rebuild with proper 64-character lines
         const keyLines = [];
