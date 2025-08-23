@@ -14,22 +14,42 @@ jobs:
       - name: Generate and Send Quote
         run: |
           # Generate a new quote
-          GENERATE_RESPONSE=$(curl -s -X POST \
+          echo "Generating quote from ${{ secrets.BACKEND_URL }}/api/quotes/generate"
+          
+          GENERATE_RESPONSE=$(curl -w "HTTP_STATUS:%{http_code}" -s -X POST \
             -H "Content-Type: application/json" \
             -H "x-api-key: ${{ secrets.API_SECRET_KEY }}" \
             ${{ secrets.BACKEND_URL }}/api/quotes/generate)
           
-          echo "Generate response: $GENERATE_RESPONSE"
+          HTTP_STATUS=$(echo "$GENERATE_RESPONSE" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
+          GENERATE_BODY=$(echo "$GENERATE_RESPONSE" | sed 's/HTTP_STATUS:[0-9]*$//')
+          
+          echo "Generate HTTP Status: $HTTP_STATUS"
+          echo "Generate response: $GENERATE_BODY"
+          
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Generate API failed with status: $HTTP_STATUS"
+            exit 1
+          fi
+          
+          if [ -z "$GENERATE_BODY" ]; then
+            echo "Empty response from generate API"
+            exit 1
+          fi
           
           # Extract quote ID from response
-          QUOTE_ID=$(echo $GENERATE_RESPONSE | jq -r '.quote.id')
-          QUOTE_TEXT=$(echo $GENERATE_RESPONSE | jq -r '.quote.text')
-          QUOTE_AUTHOR=$(echo $GENERATE_RESPONSE | jq -r '.quote.author // ""')
-          QUOTE_BIOGRAPHY=$(echo $GENERATE_RESPONSE | jq -r '.quote.biography // ""')
+          QUOTE_ID=$(echo "$GENERATE_BODY" | jq -r '.quote.id // null')
+          QUOTE_TEXT=$(echo "$GENERATE_BODY" | jq -r '.quote.text // ""')
+          QUOTE_AUTHOR=$(echo "$GENERATE_BODY" | jq -r '.quote.author // ""')
+          QUOTE_BIOGRAPHY=$(echo "$GENERATE_BODY" | jq -r '.quote.biography // ""')
           
-          if [ "$QUOTE_ID" != "null" ]; then
+          echo "Quote ID: $QUOTE_ID"
+          echo "Quote Text: $QUOTE_TEXT"
+          
+          if [ "$QUOTE_ID" != "null" ] && [ -n "$QUOTE_ID" ]; then
             # Send the quote to all users
-            SEND_RESPONSE=$(curl -s -X POST \
+            echo "Sending quote to devices..."
+            SEND_RESPONSE=$(curl -w "HTTP_STATUS:%{http_code}" -s -X POST \
               -H "Content-Type: application/json" \
               -H "x-api-key: ${{ secrets.API_SECRET_KEY }}" \
               -d "{
@@ -42,14 +62,23 @@ jobs:
               }" \
               ${{ secrets.BACKEND_URL }}/api/quotes/send)
             
-            echo "Send response: $SEND_RESPONSE"
+            SEND_HTTP_STATUS=$(echo "$SEND_RESPONSE" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
+            SEND_BODY=$(echo "$SEND_RESPONSE" | sed 's/HTTP_STATUS:[0-9]*$//')
             
-            # Extract success info
-            SUCCESS_COUNT=$(echo $SEND_RESPONSE | jq -r '.successCount // 0')
-            RECIPIENT_COUNT=$(echo $SEND_RESPONSE | jq -r '.recipientCount // 0')
+            echo "Send HTTP Status: $SEND_HTTP_STATUS"
+            echo "Send response: $SEND_BODY"
             
-            echo "Quote sent successfully to $SUCCESS_COUNT of $RECIPIENT_COUNT devices"
+            if [ "$SEND_HTTP_STATUS" = "200" ]; then
+              # Extract success info
+              SUCCESS_COUNT=$(echo "$SEND_BODY" | jq -r '.successCount // 0')
+              RECIPIENT_COUNT=$(echo "$SEND_BODY" | jq -r '.recipientCount // 0')
+              
+              echo "✅ Quote sent successfully to $SUCCESS_COUNT of $RECIPIENT_COUNT devices"
+            else
+              echo "❌ Failed to send quote. HTTP Status: $SEND_HTTP_STATUS"
+              exit 1
+            fi
           else
-            echo "Failed to generate quote"
+            echo "❌ Failed to generate quote - invalid quote ID: $QUOTE_ID"
             exit 1
           fi
