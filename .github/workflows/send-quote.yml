@@ -1,0 +1,55 @@
+name: Send Daily Quote
+
+on:
+  schedule:
+    # Run every 4 hours (adjust as needed)
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  send-quote:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate and Send Quote
+        run: |
+          # Generate a new quote
+          GENERATE_RESPONSE=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: ${{ secrets.API_SECRET_KEY }}" \
+            ${{ secrets.BACKEND_URL }}/api/quotes/generate)
+          
+          echo "Generate response: $GENERATE_RESPONSE"
+          
+          # Extract quote ID from response
+          QUOTE_ID=$(echo $GENERATE_RESPONSE | jq -r '.quote.id')
+          QUOTE_TEXT=$(echo $GENERATE_RESPONSE | jq -r '.quote.text')
+          QUOTE_AUTHOR=$(echo $GENERATE_RESPONSE | jq -r '.quote.author // ""')
+          QUOTE_BIOGRAPHY=$(echo $GENERATE_RESPONSE | jq -r '.quote.biography // ""')
+          
+          if [ "$QUOTE_ID" != "null" ]; then
+            # Send the quote to all users
+            SEND_RESPONSE=$(curl -s -X POST \
+              -H "Content-Type: application/json" \
+              -H "x-api-key: ${{ secrets.API_SECRET_KEY }}" \
+              -d "{
+                \"quoteId\": $QUOTE_ID,
+                \"quote\": {
+                  \"text\": \"$QUOTE_TEXT\",
+                  \"author\": \"$QUOTE_AUTHOR\",
+                  \"biography\": \"$QUOTE_BIOGRAPHY\"
+                }
+              }" \
+              ${{ secrets.BACKEND_URL }}/api/quotes/send)
+            
+            echo "Send response: $SEND_RESPONSE"
+            
+            # Extract success info
+            SUCCESS_COUNT=$(echo $SEND_RESPONSE | jq -r '.successCount // 0')
+            RECIPIENT_COUNT=$(echo $SEND_RESPONSE | jq -r '.recipientCount // 0')
+            
+            echo "Quote sent successfully to $SUCCESS_COUNT of $RECIPIENT_COUNT devices"
+          else
+            echo "Failed to generate quote"
+            exit 1
+          fi
