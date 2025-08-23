@@ -42,7 +42,30 @@ export function initializeFirebase() {
     
     // Fix private key formatting - replace literal \n with actual newlines
     if (serviceAccount.private_key) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      console.log('Original private key preview:', serviceAccount.private_key.substring(0, 100));
+      
+      // Ensure proper PEM format
+      let privateKey = serviceAccount.private_key
+        .replace(/\\n/g, '\n')  // Replace literal \n with actual newlines
+        .replace(/\n+/g, '\n')  // Remove duplicate newlines
+        .trim();
+      
+      // Ensure it starts and ends correctly
+      if (!privateKey.startsWith('-----BEGIN PRIVATE KEY-----')) {
+        privateKey = '-----BEGIN PRIVATE KEY-----\n' + privateKey;
+      }
+      if (!privateKey.endsWith('-----END PRIVATE KEY-----')) {
+        privateKey = privateKey + '\n-----END PRIVATE KEY-----';
+      }
+      
+      // Ensure proper line breaks within the key
+      privateKey = privateKey
+        .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+        .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----')
+        .replace(/\n+/g, '\n');  // Clean up duplicate newlines
+      
+      serviceAccount.private_key = privateKey;
+      console.log('Fixed private key preview:', privateKey.substring(0, 100));
     }
     
     console.log('Firebase service account parsed successfully');
