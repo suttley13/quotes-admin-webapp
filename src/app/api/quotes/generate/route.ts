@@ -6,6 +6,14 @@ import { isAuthorizedEmail } from '@/lib/auth';
 import { sendPushNotification } from '@/lib/firebase';
 
 export async function POST(request: NextRequest) {
+  return handleQuoteGeneration(request);
+}
+
+export async function GET(request: NextRequest) {
+  return handleQuoteGeneration(request);
+}
+
+async function handleQuoteGeneration(request: NextRequest) {
   try {
     // Check for API key authentication (for GitHub Actions)
     const apiKey = request.headers.get('x-api-key');
