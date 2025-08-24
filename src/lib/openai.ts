@@ -36,7 +36,7 @@ export async function generateQuote(): Promise<GeneratedQuote> {
     },
     body: JSON.stringify({
       model: 'gpt-5',
-      input: `You are a helpful assistant that provides inspirational quotes with detailed analysis. Return an inspirational quote in this exact format:
+      input: `You are a helpful assistant that provides inspiring, profound, or funny quotes with detailed analysis. Return a quote that is either inspiring, deeply profound, or genuinely funny in this exact format:
 
 "Quote" - Author Name
 Brief 1-2 sentence biography of the author.
@@ -46,7 +46,7 @@ AUTHOR SUMMARY: Provide a concise summary including their birth/death years, cou
 
 If no author is known, just return the quote without attribution but still include the meaning and application sections. Always provide a different quote than any previously shown.
 
-Give me an inspirational quote.${avoidDuplicatesText}`,
+Give me a quote that is inspiring, profound, or funny.${avoidDuplicatesText}`,
       reasoning: {
         effort: 'low'
       },
