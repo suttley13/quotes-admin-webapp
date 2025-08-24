@@ -86,9 +86,11 @@ async function handleQuoteGeneration(request: NextRequest) {
           generatedQuote.author || 'Unknown Author',
           generatedQuote.text,
           {
+            type: 'quote_notification',
             quoteId: savedQuote.id.toString(),
-            author: generatedQuote.author,
-            biography: generatedQuote.biography || ''
+            quote_text: generatedQuote.text,
+            quote_author: generatedQuote.author || '',
+            quote_biography: generatedQuote.biography || ''
           }
         );
 
