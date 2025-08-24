@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/send-quote",
+      "path": "/api/quotes/generate?auto_send=true",
       "schedule": "*/5 * * * *"
     }
   ]

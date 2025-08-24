@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { generateQuote } from '@/lib/openai';
-import { saveQuote, checkDuplicateQuote } from '@/lib/db';
+import { saveQuote, checkDuplicateQuote, getActiveDeviceTokens, saveNotificationRecord, markQuoteAsSent } from '@/lib/db';
 import { isAuthorizedEmail } from '@/lib/auth';
+import { sendPushNotification } from '@/lib/firebase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       }, { status: 409 });
     }
 
-    // Save the quote but don't mark as sent yet
+    // Save the quote
     const userId = isApiKeyAuth ? 'github-actions' : user?.id;
     const savedQuote = await saveQuote(
       generatedQuote.text,
@@ -46,6 +47,56 @@ export async function POST(request: NextRequest) {
       generatedQuote.biography,
       userId
     );
+
+    // Check if this is a Vercel Cron call (by checking User-Agent or add a query parameter)
+    const userAgent = request.headers.get('user-agent') || '';
+    const isVercelCron = userAgent.includes('vercel-cron') || request.nextUrl.searchParams.get('auto_send') === 'true';
+
+    if (isVercelCron) {
+      console.log('🤖 Auto-sending push notifications (Vercel Cron detected)');
+      
+      // Get all registered devices
+      const devices = await getActiveDeviceTokens();
+      console.log('📱 Found', devices.length, 'registered devices');
+
+      if (devices.length > 0) {
+        // Send push notifications
+        const tokens = devices.map(device => device.token);
+        const { successCount, failureCount } = await sendPushNotification(
+          tokens,
+          'Daily Inspiration',
+          `"${generatedQuote.text}" - ${generatedQuote.author}`,
+          {
+            quoteId: savedQuote.id.toString(),
+            author: generatedQuote.author,
+            biography: generatedQuote.biography || ''
+          }
+        );
+
+        console.log(`✅ Push notifications sent: ${successCount} successful, ${failureCount} failed`);
+
+        // Mark quote as sent and save notification record
+        await markQuoteAsSent(savedQuote.id);
+        await saveNotificationRecord(savedQuote.id, devices.length, successCount);
+
+        return NextResponse.json({
+          success: true,
+          quote: savedQuote,
+          notifications: {
+            recipientCount: devices.length,
+            successCount,
+            failureCount
+          },
+          message: `Quote generated and sent to ${successCount} of ${devices.length} devices`
+        });
+      } else {
+        return NextResponse.json({
+          success: true,
+          quote: savedQuote,
+          message: 'Quote generated but no devices to send to'
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,
