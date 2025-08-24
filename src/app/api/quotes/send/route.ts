@@ -60,7 +60,10 @@ export async function POST(request: NextRequest) {
       quote_id: quoteId.toString(),
       quote_text: quote.text,
       quote_author: quote.author || '',
-      quote_biography: quote.biography || ''
+      quote_biography: quote.biography || '',
+      quote_meaning: quote.meaning || '',
+      quote_application: quote.application || '',
+      quote_author_summary: quote.author_summary || ''
     };
 
     const result = await sendPushNotification(tokens, title, body, data);
