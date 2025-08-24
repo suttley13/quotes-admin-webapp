@@ -65,7 +65,7 @@ async function handleQuoteGeneration(request: NextRequest) {
     console.log('Is Automated Call:', isAutomatedCall);
 
     if (isAutomatedCall) {
-      console.log('🤖 Auto-sending push notifications (Automated call detected)');
+      console.log('🤖 Auto-sending push notifications (Automated call detected) - v2');
       
       // Get all registered devices
       const devices = await getActiveDeviceTokens();
