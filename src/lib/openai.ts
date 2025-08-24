@@ -42,7 +42,7 @@ export async function generateQuote(): Promise<GeneratedQuote> {
 Brief 1-2 sentence biography of the author.
 MEANING: Explain what this quote means in 2-3 sentences.
 APPLICATION: Give a practical example of how someone could apply this quote in their daily life (2-3 sentences).
-AUTHOR SUMMARY: Provide a concise summary of who this person was and their key contributions (2-3 sentences).
+AUTHOR SUMMARY: Provide a concise summary including their birth/death years, country of origin, and key contributions (2-3 sentences). Format: "Name (YYYY-YYYY) was a [nationality] [profession] who [key contributions]."
 
 If no author is known, just return the quote without attribution but still include the meaning and application sections. Always provide a different quote than any previously shown.
 
