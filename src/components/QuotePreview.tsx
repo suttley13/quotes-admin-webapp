@@ -7,6 +7,9 @@ interface Quote {
   text: string;
   author: string | null;
   biography: string | null;
+  meaning: string | null;
+  application: string | null;
+  author_summary: string | null;
   created_at: string;
   sent_at: string | null;
 }
@@ -95,6 +98,27 @@ export default function QuotePreview({ quote, onQuoteSent }: QuotePreviewProps) 
         {quote.biography && (
           <div className="p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">{quote.biography}</p>
+          </div>
+        )}
+
+        {quote.meaning && (
+          <div className="p-3 bg-purple-50 rounded-lg">
+            <h4 className="text-sm font-semibold text-purple-900 mb-1">Meaning:</h4>
+            <p className="text-sm text-purple-800">{quote.meaning}</p>
+          </div>
+        )}
+
+        {quote.application && (
+          <div className="p-3 bg-green-50 rounded-lg">
+            <h4 className="text-sm font-semibold text-green-900 mb-1">Application:</h4>
+            <p className="text-sm text-green-800">{quote.application}</p>
+          </div>
+        )}
+
+        {quote.author_summary && (
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <h4 className="text-sm font-semibold text-gray-900 mb-1">Author Summary:</h4>
+            <p className="text-sm text-gray-800">{quote.author_summary}</p>
           </div>
         )}
 

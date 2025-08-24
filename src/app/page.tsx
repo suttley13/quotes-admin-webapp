@@ -12,6 +12,9 @@ interface Quote {
   text: string;
   author: string | null;
   biography: string | null;
+  meaning: string | null;
+  application: string | null;
+  author_summary: string | null;
   created_at: string;
   sent_at: string | null;
 }
