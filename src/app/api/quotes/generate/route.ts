@@ -83,8 +83,8 @@ async function handleQuoteGeneration(request: NextRequest) {
         const tokens = devices.map(device => device.token);
         const { successCount, failureCount } = await sendPushNotification(
           tokens,
-          'Daily Inspiration',
-          `"${generatedQuote.text}" - ${generatedQuote.author}`,
+          generatedQuote.author || 'Unknown Author',
+          generatedQuote.text,
           {
             quoteId: savedQuote.id.toString(),
             author: generatedQuote.author,
