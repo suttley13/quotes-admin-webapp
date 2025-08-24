@@ -2,8 +2,8 @@ name: Test Schedule
 
 on:
   schedule:
-    # Run every minute for testing
-    - cron: '* * * * *'
+    # Run every 2 minutes for testing
+    - cron: '*/2 * * * *'
   workflow_dispatch:
 
 jobs:
