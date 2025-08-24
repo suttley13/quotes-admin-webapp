@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Quotes Admin Dashboard",
+  title: "Spenny Quotes Admin",
   description: "Admin dashboard for managing inspirational quotes",
 };
 
