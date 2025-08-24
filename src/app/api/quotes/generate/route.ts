@@ -19,8 +19,16 @@ async function handleQuoteGeneration(request: NextRequest) {
     const apiKey = request.headers.get('x-api-key');
     const isApiKeyAuth = apiKey === process.env.API_SECRET_KEY;
     
+    // Check if this is a Vercel cron job
+    const userAgent = request.headers.get('user-agent') || '';
+    const isVercelCron = userAgent.includes('vercel-cron') || userAgent.includes('Vercel');
+    
+    console.log('User-Agent:', userAgent);
+    console.log('Is API Key Auth:', isApiKeyAuth);
+    console.log('Is Vercel Cron:', isVercelCron);
+    
     let user = null;
-    if (!isApiKeyAuth) {
+    if (!isApiKeyAuth && !isVercelCron) {
       // Fall back to Clerk user authentication
       user = await currentUser();
       
@@ -56,12 +64,11 @@ async function handleQuoteGeneration(request: NextRequest) {
       userId
     );
 
-    // Check if this is an automated call (API key auth = automated, no user = automated)
-    const userAgent = request.headers.get('user-agent') || '';
-    const isAutomatedCall = isApiKeyAuth || !user;
+    // Check if this is an automated call (API key auth, Vercel cron, or no user = automated)
+    const isAutomatedCall = isApiKeyAuth || isVercelCron || !user;
     
-    console.log('User-Agent:', userAgent);
     console.log('Is API Key Auth:', isApiKeyAuth);
+    console.log('Is Vercel Cron:', isVercelCron);
     console.log('Is Automated Call:', isAutomatedCall);
 
     if (isAutomatedCall) {
