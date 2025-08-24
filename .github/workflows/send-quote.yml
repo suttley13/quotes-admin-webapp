@@ -2,8 +2,8 @@ name: Send Daily Quote
 
 on:
   schedule:
-    # Run every 10 minutes for testing (temporary)
-    - cron: '*/10 * * * *'
+    # Run every 15 minutes for testing (temporary)
+    - cron: '*/15 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
