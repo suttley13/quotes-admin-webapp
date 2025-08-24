@@ -21,6 +21,8 @@ interface Stats {
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [migrating, setMigrating] = useState(false);
+  const [migrationMessage, setMigrationMessage] = useState<string | null>(null);
 
   const fetchStats = async () => {
     try {
@@ -34,6 +36,29 @@ export default function Dashboard() {
       console.error('Failed to fetch stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runMigration = async () => {
+    setMigrating(true);
+    setMigrationMessage(null);
+    
+    try {
+      const response = await fetch('/api/migrate', {
+        method: 'POST'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setMigrationMessage('Database migration completed successfully! ✅');
+      } else {
+        setMigrationMessage(`Migration failed: ${data.error}`);
+      }
+    } catch (error) {
+      setMigrationMessage('Migration failed: Network error');
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -107,6 +132,26 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Temporary Migration Button */}
+      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+        <h3 className="text-lg font-medium text-yellow-800 mb-2">Database Migration</h3>
+        <p className="text-sm text-yellow-700 mb-4">
+          Run this once to add the new database columns for enhanced quotes (meaning, application, author summary).
+        </p>
+        <button
+          onClick={runMigration}
+          disabled={migrating}
+          className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {migrating ? 'Running Migration...' : 'Run Database Migration'}
+        </button>
+        {migrationMessage && (
+          <div className={`mt-3 p-3 rounded-md ${migrationMessage.includes('successfully') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {migrationMessage}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
