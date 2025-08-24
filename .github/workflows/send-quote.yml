@@ -2,8 +2,8 @@ name: Send Daily Quote
 
 on:
   schedule:
-    # Run every 4 hours (adjust as needed)
-    - cron: '0 */4 * * *'
+    # Run every 10 minutes for testing (temporary)
+    - cron: '*/10 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
           GENERATE_RESPONSE=$(curl -w "HTTP_STATUS:%{http_code}" -s -X POST \
             -H "Content-Type: application/json" \
             -H "x-api-key: ${{ secrets.API_SECRET_KEY }}" \
-            ${{ secrets.BACKEND_URL }}/api/quotes/generate)
+            "${{ secrets.BACKEND_URL }}/api/quotes/generate?x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}")
           
           HTTP_STATUS=$(echo "$GENERATE_RESPONSE" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
           GENERATE_BODY=$(echo "$GENERATE_RESPONSE" | sed 's/HTTP_STATUS:[0-9]*$//')
@@ -60,7 +60,7 @@ jobs:
                   \"biography\": \"$QUOTE_BIOGRAPHY\"
                 }
               }" \
-              ${{ secrets.BACKEND_URL }}/api/quotes/send)
+              "${{ secrets.BACKEND_URL }}/api/quotes/send?x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}"
             
             SEND_HTTP_STATUS=$(echo "$SEND_RESPONSE" | grep -o 'HTTP_STATUS:[0-9]*' | cut -d: -f2)
             SEND_BODY=$(echo "$SEND_RESPONSE" | sed 's/HTTP_STATUS:[0-9]*$//')
