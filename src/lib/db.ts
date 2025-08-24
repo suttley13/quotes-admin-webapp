@@ -5,6 +5,9 @@ export interface Quote {
   text: string;
   author: string | null;
   biography: string | null;
+  meaning: string | null;
+  application: string | null;
+  author_summary: string | null;
   created_at: Date;
   sent_at: Date | null;
   sent_by: string | null;
@@ -36,10 +39,21 @@ export async function initializeDatabase() {
         text TEXT NOT NULL,
         author VARCHAR(255),
         biography TEXT,
+        meaning TEXT,
+        application TEXT,
+        author_summary TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         sent_at TIMESTAMP,
         sent_by VARCHAR(255)
       )
+    `;
+
+    // Add new columns to existing table if they don't exist
+    await sql`
+      ALTER TABLE quotes 
+      ADD COLUMN IF NOT EXISTS meaning TEXT,
+      ADD COLUMN IF NOT EXISTS application TEXT,
+      ADD COLUMN IF NOT EXISTS author_summary TEXT
     `;
 
     // Create device_tokens table
@@ -81,10 +95,18 @@ export async function getQuotes(limit: number = 50): Promise<Quote[]> {
   return result.rows;
 }
 
-export async function saveQuote(text: string, author: string | null, biography: string | null, sentBy: string | null = null): Promise<Quote> {
+export async function saveQuote(
+  text: string, 
+  author: string | null, 
+  biography: string | null, 
+  meaning: string | null = null, 
+  application: string | null = null, 
+  authorSummary: string | null = null, 
+  sentBy: string | null = null
+): Promise<Quote> {
   const result = await sql<Quote>`
-    INSERT INTO quotes (text, author, biography, sent_by)
-    VALUES (${text}, ${author}, ${biography}, ${sentBy})
+    INSERT INTO quotes (text, author, biography, meaning, application, author_summary, sent_by)
+    VALUES (${text}, ${author}, ${biography}, ${meaning}, ${application}, ${authorSummary}, ${sentBy})
     RETURNING *
   `;
   return result.rows[0];

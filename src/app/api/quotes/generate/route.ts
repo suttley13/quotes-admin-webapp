@@ -61,6 +61,9 @@ async function handleQuoteGeneration(request: NextRequest) {
       generatedQuote.text,
       generatedQuote.author,
       generatedQuote.biography,
+      generatedQuote.meaning,
+      generatedQuote.application,
+      generatedQuote.authorSummary,
       userId
     );
 
@@ -90,7 +93,10 @@ async function handleQuoteGeneration(request: NextRequest) {
             quoteId: savedQuote.id.toString(),
             quote_text: generatedQuote.text,
             quote_author: generatedQuote.author || '',
-            quote_biography: generatedQuote.biography || ''
+            quote_biography: generatedQuote.biography || '',
+            quote_meaning: generatedQuote.meaning || '',
+            quote_application: generatedQuote.application || '',
+            quote_author_summary: generatedQuote.authorSummary || ''
           }
         );
 

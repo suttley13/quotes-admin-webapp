@@ -4,6 +4,9 @@ export interface GeneratedQuote {
   text: string;
   author: string | null;
   biography: string | null;
+  meaning: string | null;
+  application: string | null;
+  authorSummary: string | null;
 }
 
 export async function generateQuote(): Promise<GeneratedQuote> {
@@ -33,12 +36,15 @@ export async function generateQuote(): Promise<GeneratedQuote> {
     },
     body: JSON.stringify({
       model: 'gpt-5',
-      input: `You are a helpful assistant that provides inspirational quotes with author biographies. Return an inspirational quote in this exact format:
+      input: `You are a helpful assistant that provides inspirational quotes with detailed analysis. Return an inspirational quote in this exact format:
 
 "Quote" - Author Name
 Brief 1-2 sentence biography of the author.
+MEANING: Explain what this quote means in 2-3 sentences.
+APPLICATION: Give a practical example of how someone could apply this quote in their daily life (2-3 sentences).
+AUTHOR SUMMARY: Provide a concise summary of who this person was and their key contributions (2-3 sentences).
 
-If no author is known, just return the quote without attribution or biography. Always provide a different quote than any previously shown.
+If no author is known, just return the quote without attribution but still include the meaning and application sections. Always provide a different quote than any previously shown.
 
 Give me an inspirational quote.${avoidDuplicatesText}`,
       reasoning: {
@@ -75,34 +81,46 @@ Give me an inspirational quote.${avoidDuplicatesText}`,
 
 function parseQuoteFromText(content: string): GeneratedQuote {
   const trimmedContent = content.trim();
-  const lines = trimmedContent.split('\n');
-
-  if (lines.length >= 2) {
-    // First line should be quote and author
-    const quoteLine = lines[0].trim();
-    // Second line should be biography
-    const biography = lines[1].trim();
-
-    const dashIndex = quoteLine.lastIndexOf(' - ');
-    if (dashIndex !== -1) {
-      const text = quoteLine.substring(0, dashIndex).replace(/^"/, '').replace(/"$/, '');
-      const author = quoteLine.substring(dashIndex + 3);
-      return {
-        text,
-        author,
-        biography: biography.length > 0 ? biography : null
-      };
+  const lines = trimmedContent.split('\n').map(line => line.trim());
+  
+  let text = '';
+  let author: string | null = null;
+  let biography: string | null = null;
+  let meaning: string | null = null;
+  let application: string | null = null;
+  let authorSummary: string | null = null;
+  
+  // Parse the structured response
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    if (i === 0) {
+      // First line: "Quote" - Author Name
+      const dashIndex = line.lastIndexOf(' - ');
+      if (dashIndex !== -1) {
+        text = line.substring(0, dashIndex).replace(/^"/, '').replace(/"$/, '');
+        author = line.substring(dashIndex + 3);
+      } else {
+        text = line.replace(/^"/, '').replace(/"$/, '');
+      }
+    } else if (i === 1 && !line.startsWith('MEANING:') && !line.startsWith('APPLICATION:') && !line.startsWith('AUTHOR SUMMARY:')) {
+      // Second line: Biography (if it exists and isn't one of our special sections)
+      biography = line.length > 0 ? line : null;
+    } else if (line.startsWith('MEANING:')) {
+      meaning = line.substring('MEANING:'.length).trim();
+    } else if (line.startsWith('APPLICATION:')) {
+      application = line.substring('APPLICATION:'.length).trim();
+    } else if (line.startsWith('AUTHOR SUMMARY:')) {
+      authorSummary = line.substring('AUTHOR SUMMARY:'.length).trim();
     }
   }
-
-  // Fallback to single line parsing
-  const dashIndex = trimmedContent.lastIndexOf(' - ');
-  if (dashIndex !== -1) {
-    const text = trimmedContent.substring(0, dashIndex).replace(/^"/, '').replace(/"$/, '');
-    const author = trimmedContent.substring(dashIndex + 3);
-    return { text, author, biography: null };
-  } else {
-    const cleanedQuote = trimmedContent.replace(/^"/, '').replace(/"$/, '');
-    return { text: cleanedQuote, author: null, biography: null };
-  }
+  
+  return {
+    text,
+    author,
+    biography,
+    meaning,
+    application,
+    authorSummary
+  };
 }
