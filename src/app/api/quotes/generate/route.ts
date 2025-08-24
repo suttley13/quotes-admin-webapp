@@ -48,12 +48,16 @@ export async function POST(request: NextRequest) {
       userId
     );
 
-    // Check if this is a Vercel Cron call (by checking User-Agent or add a query parameter)
+    // Check if this is an automated call (API key auth = automated, no user = automated)
     const userAgent = request.headers.get('user-agent') || '';
-    const isVercelCron = userAgent.includes('vercel-cron') || request.nextUrl.searchParams.get('auto_send') === 'true';
+    const isAutomatedCall = isApiKeyAuth || !user;
+    
+    console.log('User-Agent:', userAgent);
+    console.log('Is API Key Auth:', isApiKeyAuth);
+    console.log('Is Automated Call:', isAutomatedCall);
 
-    if (isVercelCron) {
-      console.log('🤖 Auto-sending push notifications (Vercel Cron detected)');
+    if (isAutomatedCall) {
+      console.log('🤖 Auto-sending push notifications (Automated call detected)');
       
       // Get all registered devices
       const devices = await getActiveDeviceTokens();
