@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateQuote } from '@/lib/openai';
-import { saveQuote, checkDuplicateQuote, getAllDevices } from '@/lib/db';
+import { saveQuote, checkDuplicateQuote, getActiveDeviceTokens, saveNotificationRecord, markQuoteAsSent } from '@/lib/db';
 import { sendPushNotification } from '@/lib/firebase';
 
 export async function POST(request: NextRequest) {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Saved quote with ID:', savedQuote.id);
 
     // Get all registered devices
-    const devices = await getAllDevices();
+    const devices = await getActiveDeviceTokens();
     console.log('📱 Found', devices.length, 'registered devices');
 
     if (devices.length === 0) {
@@ -66,8 +66,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Push notifications sent: ${successCount} successful, ${failureCount} failed`);
 
-    // Mark quote as sent (you might want to add this to your database schema)
-    // await markQuoteAsSent(savedQuote.id);
+    // Mark quote as sent and save notification record
+    await markQuoteAsSent(savedQuote.id);
+    await saveNotificationRecord(savedQuote.id, devices.length, successCount);
 
     return NextResponse.json({
       success: true,
