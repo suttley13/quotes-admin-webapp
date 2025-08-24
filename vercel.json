@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/quotes/generate",
-      "schedule": "*/5 * * * *",
+      "schedule": "0 9 * * *",
       "method": "POST"
     }
   ]
