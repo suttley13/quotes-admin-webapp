@@ -43,6 +43,9 @@ export default function QuotePreview({ quote, onQuoteSent }: QuotePreviewProps) 
             text: quote.text,
             author: quote.author,
             biography: quote.biography,
+            meaning: quote.meaning,
+            application: quote.application,
+            author_summary: quote.author_summary,
           },
         }),
       });
