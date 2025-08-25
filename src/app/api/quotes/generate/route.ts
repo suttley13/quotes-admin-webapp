@@ -57,15 +57,15 @@ async function handleQuoteGeneration(request: NextRequest) {
 
     // Save the quote
     const userId = isApiKeyAuth ? 'github-actions' : user?.id;
-    const savedQuote = await saveQuote(
-      generatedQuote.text,
-      generatedQuote.author,
-      generatedQuote.biography,
-      generatedQuote.meaning,
-      generatedQuote.application,
-      generatedQuote.authorSummary,
-      userId
-    );
+    const savedQuote = await saveQuote({
+      text: generatedQuote.text,
+      author: generatedQuote.author,
+      biography: generatedQuote.biography,
+      meaning: generatedQuote.meaning,
+      application: generatedQuote.application,
+      authorSummary: generatedQuote.authorSummary,
+      sentBy: userId
+    });
 
     // Check if this is an automated call (API key auth, Vercel cron, or no user = automated)
     const isAutomatedCall = isApiKeyAuth || isVercelCron || !user;

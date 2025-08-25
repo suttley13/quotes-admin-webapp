@@ -30,6 +30,19 @@ export interface Notification {
   success_count: number;
 }
 
+export interface User {
+  id: number;
+  device_id: string;
+  created_at: Date;
+}
+
+export interface UserFavorite {
+  id: number;
+  user_id: number;
+  quote_id: number;
+  favorited_at: Date;
+}
+
 export async function initializeDatabase() {
   try {
     // Create quotes table
@@ -79,6 +92,26 @@ export async function initializeDatabase() {
       )
     `;
 
+    // Create users table for device-based user management
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        device_id VARCHAR(255) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Create user_favorites table for favorite quotes
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_favorites (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        quote_id INTEGER REFERENCES quotes(id) ON DELETE CASCADE,
+        favorited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, quote_id)
+      )
+    `;
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization failed:', error);
@@ -95,18 +128,18 @@ export async function getQuotes(limit: number = 50): Promise<Quote[]> {
   return result.rows;
 }
 
-export async function saveQuote(
-  text: string, 
-  author: string | null, 
-  biography: string | null, 
-  meaning: string | null = null, 
-  application: string | null = null, 
-  authorSummary: string | null = null, 
-  sentBy: string | null = null
-): Promise<Quote> {
+export async function saveQuote(quote: {
+  text: string;
+  author: string | null;
+  biography: string | null;
+  meaning?: string | null;
+  application?: string | null;
+  authorSummary?: string | null;
+  sentBy?: string | null;
+}): Promise<Quote> {
   const result = await sql<Quote>`
     INSERT INTO quotes (text, author, biography, meaning, application, author_summary, sent_by)
-    VALUES (${text}, ${author}, ${biography}, ${meaning}, ${application}, ${authorSummary}, ${sentBy})
+    VALUES (${quote.text}, ${quote.author}, ${quote.biography}, ${quote.meaning || null}, ${quote.application || null}, ${quote.authorSummary || null}, ${quote.sentBy || null})
     RETURNING *
   `;
   return result.rows[0];
@@ -152,4 +185,81 @@ export async function checkDuplicateQuote(text: string, author: string | null): 
     WHERE text = ${text} AND author = ${author}
   `;
   return result.rows[0].count > 0;
+}
+
+// User management functions
+export async function registerUser(deviceId: string): Promise<User> {
+  const result = await sql<User>`
+    INSERT INTO users (device_id)
+    VALUES (${deviceId})
+    ON CONFLICT (device_id) DO UPDATE SET device_id = ${deviceId}
+    RETURNING *
+  `;
+  return result.rows[0];
+}
+
+export async function getUserByDeviceId(deviceId: string): Promise<User | null> {
+  const result = await sql<User>`
+    SELECT * FROM users 
+    WHERE device_id = ${deviceId}
+  `;
+  return result.rows[0] || null;
+}
+
+// Favorite management functions
+export async function toggleFavorite(userId: number, quoteId: number): Promise<{ favorited: boolean }> {
+  // First check if favorite exists
+  const existing = await sql`
+    SELECT id FROM user_favorites 
+    WHERE user_id = ${userId} AND quote_id = ${quoteId}
+  `;
+  
+  if (existing.rows.length > 0) {
+    // Remove favorite
+    await sql`
+      DELETE FROM user_favorites 
+      WHERE user_id = ${userId} AND quote_id = ${quoteId}
+    `;
+    return { favorited: false };
+  } else {
+    // Add favorite
+    await sql`
+      INSERT INTO user_favorites (user_id, quote_id)
+      VALUES (${userId}, ${quoteId})
+    `;
+    return { favorited: true };
+  }
+}
+
+export async function getUserFavorites(userId: number): Promise<Quote[]> {
+  const result = await sql<Quote>`
+    SELECT q.* FROM quotes q
+    JOIN user_favorites uf ON q.id = uf.quote_id
+    WHERE uf.user_id = ${userId}
+    ORDER BY uf.favorited_at DESC
+  `;
+  return result.rows;
+}
+
+export async function getQuoteWithFavoriteStatus(quoteId: number, userId: number): Promise<Quote & { is_favorited: boolean }> {
+  const result = await sql<Quote & { is_favorited: boolean }>`
+    SELECT q.*, 
+           CASE WHEN uf.id IS NOT NULL THEN true ELSE false END as is_favorited
+    FROM quotes q
+    LEFT JOIN user_favorites uf ON q.id = uf.quote_id AND uf.user_id = ${userId}
+    WHERE q.id = ${quoteId}
+  `;
+  return result.rows[0];
+}
+
+export async function getAllQuotesWithFavoriteStatus(userId: number, limit: number = 50): Promise<(Quote & { is_favorited: boolean })[]> {
+  const result = await sql<Quote & { is_favorited: boolean }>`
+    SELECT q.*, 
+           CASE WHEN uf.id IS NOT NULL THEN true ELSE false END as is_favorited
+    FROM quotes q
+    LEFT JOIN user_favorites uf ON q.id = uf.quote_id AND uf.user_id = ${userId}
+    ORDER BY q.created_at DESC
+    LIMIT ${limit}
+  `;
+  return result.rows;
 }
