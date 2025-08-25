@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/quotes/save',
   '/api/quotes/all',
   '/api/quotes/find',
+  '/api/quotes/latest',
   '/api/users/register',
   '/api/favorites/toggle',
   '/api/favorites/list'
