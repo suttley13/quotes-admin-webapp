@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveQuote } from '@/lib/db';
+import { saveQuote, checkDuplicateQuote } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +10,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Quote text is required' },
         { status: 400 }
+      );
+    }
+
+    // Check for duplicates
+    const isDuplicate = await checkDuplicateQuote(text, author || null);
+    if (isDuplicate) {
+      return NextResponse.json(
+        { error: 'Quote already exists', duplicate: true },
+        { status: 409 }
       );
     }
 
