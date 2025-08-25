@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
+    const sortBy = searchParams.get('sort') as 'favorites' | 'created_at' || 'favorites';
 
-    const quotes = await getQuotes(limit);
+    const quotes = await getQuotes(limit, sortBy);
 
     return NextResponse.json({
       success: true,

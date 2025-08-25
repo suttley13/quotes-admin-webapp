@@ -119,10 +119,16 @@ export async function initializeDatabase() {
   }
 }
 
-export async function getQuotes(limit: number = 50): Promise<Quote[]> {
-  const result = await sql<Quote>`
-    SELECT * FROM quotes 
-    ORDER BY created_at DESC 
+export async function getQuotes(limit: number = 50, sortBy: 'favorites' | 'created_at' = 'favorites'): Promise<(Quote & { favorite_count: number })[]> {
+  const orderClause = sortBy === 'favorites' ? 'favorite_count DESC, q.created_at DESC' : 'q.created_at DESC';
+  
+  const result = await sql<Quote & { favorite_count: number }>`
+    SELECT q.*, 
+           COALESCE(COUNT(uf.id), 0) as favorite_count
+    FROM quotes q
+    LEFT JOIN user_favorites uf ON q.id = uf.quote_id
+    GROUP BY q.id, q.text, q.author, q.biography, q.meaning, q.application, q.author_summary, q.created_at, q.sent_at, q.sent_by
+    ORDER BY ${sql.unsafe(orderClause)}
     LIMIT ${limit}
   `;
   return result.rows;
