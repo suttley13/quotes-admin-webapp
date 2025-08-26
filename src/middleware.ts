@@ -13,7 +13,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/quotes/latest',
   '/api/users/register',
   '/api/favorites/toggle',
-  '/api/favorites/list'
+  '/api/favorites/list',
+  '/api/favorites/clear'
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
