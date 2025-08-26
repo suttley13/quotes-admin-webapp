@@ -84,10 +84,14 @@ export default function Home() {
       </nav>
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex-1 flex flex-col">
-        {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'dashboard' && (
+          <div className="max-w-[900px] w-full mx-auto">
+            <Dashboard />
+          </div>
+        )}
         
         {activeTab === 'generate' && (
-          <div className="space-y-6 w-4/5 mx-auto">
+          <div className="space-y-6 max-w-[900px] w-full mx-auto">
             <QuoteGenerator onQuoteGenerated={handleQuoteGenerated} />
             <QuotePreview quote={currentQuote} onQuoteSent={handleQuoteSent} />
           </div>
