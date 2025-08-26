@@ -63,8 +63,8 @@ export default function QuoteHistory() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border">
-      <div className="p-6 border-b">
+    <div className="bg-white rounded-lg shadow-sm border flex flex-col h-full">
+      <div className="p-6 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Quote History</h2>
@@ -84,7 +84,7 @@ export default function QuoteHistory() {
         </div>
       </div>
 
-      <div className="max-h-96 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {quotes.length === 0 ? (
           <div className="p-6">
             <p className="text-gray-500 text-center">No quotes generated yet</p>
