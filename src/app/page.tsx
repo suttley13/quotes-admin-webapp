@@ -87,7 +87,7 @@ export default function Home() {
         {activeTab === 'dashboard' && <Dashboard />}
         
         {activeTab === 'generate' && (
-          <div className="space-y-6 max-w-4xl mx-auto">
+          <div className="space-y-6 w-4/5 mx-auto">
             <QuoteGenerator onQuoteGenerated={handleQuoteGenerated} />
             <QuotePreview quote={currentQuote} onQuoteSent={handleQuoteSent} />
           </div>
