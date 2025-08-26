@@ -51,7 +51,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div>
-              <h1 className="text-2xl font-bold text-purple-600">Spenny Quotes Admin</h1>
+              <h1 className="text-2xl font-bold text-purple-600">The Quotes App - Admin Console</h1>
               <p className="text-sm text-gray-600">Welcome back, {user.firstName || 'Admin'}</p>
             </div>
             <UserButton afterSignOutUrl="/" />
@@ -87,7 +87,7 @@ export default function Home() {
         {activeTab === 'dashboard' && <Dashboard />}
         
         {activeTab === 'generate' && (
-          <div className="space-y-6">
+          <div className="space-y-6 max-w-4xl mx-auto">
             <QuoteGenerator onQuoteGenerated={handleQuoteGenerated} />
             <QuotePreview quote={currentQuote} onQuoteSent={handleQuoteSent} />
           </div>
