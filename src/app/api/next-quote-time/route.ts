@@ -10,36 +10,41 @@ export async function GET() {
     
     const currentHour = now.getUTCHours();
     const currentMinute = now.getUTCMinutes();
+    const currentSecond = now.getUTCSeconds();
     
-    // Calculate next 2-hour boundary
-    let nextHour = Math.ceil(currentHour / 2) * 2;
+    // Find the next 2-hour boundary
+    // If we're currently at a 2-hour boundary (even hour) and haven't passed minute 0, use current hour
+    // Otherwise, find the next even hour
+    
+    let nextHour;
     let nextDay = now.getUTCDate();
     let nextMonth = now.getUTCMonth();
     let nextYear = now.getUTCFullYear();
     
-    // If we've passed 22:00, next run is tomorrow at 00:00
+    if (currentHour % 2 === 0 && currentMinute === 0 && currentSecond < 10) {
+      // We're at or very close to execution time - use current hour
+      nextHour = currentHour;
+    } else {
+      // Find next even hour
+      if (currentHour % 2 === 0) {
+        // We're on an even hour but past minute 0, so next execution is +2 hours
+        nextHour = currentHour + 2;
+      } else {
+        // We're on an odd hour, so next execution is next even hour
+        nextHour = currentHour + 1;
+      }
+    }
+    
+    // Handle day rollover
     if (nextHour >= 24) {
-      nextHour = 0;
+      nextHour = nextHour - 24;
       nextDay += 1;
       
-      // Handle month/year rollover
+      // Handle month/year rollover using Date constructor
       const nextDate = new Date(nextYear, nextMonth, nextDay);
       nextDay = nextDate.getUTCDate();
       nextMonth = nextDate.getUTCMonth();
       nextYear = nextDate.getUTCFullYear();
-    }
-    
-    // If we're exactly at the hour (minute 0) and it's a cron hour, 
-    // and we haven't passed the execution time, use current hour
-    const isCurrentHourCronHour = currentHour % 2 === 0;
-    const isExactlyOnTheHour = currentMinute === 0;
-    
-    if (isCurrentHourCronHour && currentMinute < 1) {
-      // Very close to or at execution time - use current hour
-      nextHour = currentHour;
-      nextDay = now.getUTCDate();
-      nextMonth = now.getUTCMonth();
-      nextYear = now.getUTCFullYear();
     }
     
     // Create next execution time
