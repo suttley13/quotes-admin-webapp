@@ -14,7 +14,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/users/register',
   '/api/favorites/toggle',
   '/api/favorites/list',
-  '/api/favorites/clear'
+  '/api/favorites/clear',
+  '/api/cleanup-duplicates'
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

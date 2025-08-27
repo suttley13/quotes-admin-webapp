@@ -197,10 +197,27 @@ export async function saveNotificationRecord(quoteId: number, recipientCount: nu
 }
 
 export async function checkDuplicateQuote(text: string, author: string | null): Promise<boolean> {
-  const result = await sql`
-    SELECT COUNT(*) as count FROM quotes 
-    WHERE text = ${text} AND author = ${author}
-  `;
+  // Normalize the text by trimming whitespace
+  const normalizedText = text.trim();
+  
+  let result;
+  if (author === null || author === undefined || author === '') {
+    // For quotes without authors, check for null, undefined, or empty string
+    result = await sql`
+      SELECT COUNT(*) as count FROM quotes 
+      WHERE TRIM(text) = ${normalizedText} 
+      AND (author IS NULL OR author = '' OR TRIM(author) = '')
+    `;
+  } else {
+    // For quotes with authors, check exact match
+    const normalizedAuthor = author.trim();
+    result = await sql`
+      SELECT COUNT(*) as count FROM quotes 
+      WHERE TRIM(text) = ${normalizedText} 
+      AND TRIM(author) = ${normalizedAuthor}
+    `;
+  }
+  
   return result.rows[0].count > 0;
 }
 
