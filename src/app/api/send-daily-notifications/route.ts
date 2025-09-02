@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
     console.log('📨 Sending daily notifications for quote:', todayQuote.text.substring(0, 50) + '...');
 
     // Get the current hour and minute (for the specific time-based sending)
-    const body = await request.json();
-    const { hour, minute = 0 } = body;
+    const requestBody = await request.json();
+    const { hour, minute = 0 } = requestBody;
 
     if (hour === undefined) {
       return NextResponse.json(
