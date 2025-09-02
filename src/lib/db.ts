@@ -34,6 +34,17 @@ export interface User {
   id: number;
   device_id: string;
   created_at: Date;
+  notification_time: string; // Format: "09:00"
+  timezone: string; // Format: "America/New_York"
+  notifications_enabled: boolean;
+  device_token?: string;
+}
+
+export interface DailyQuote {
+  id: number;
+  quote_id: number;
+  date: string; // Format: "2025-01-02"
+  created_at: Date;
 }
 
 export interface UserFavorite {
@@ -97,8 +108,21 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         device_id VARCHAR(255) UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        notification_time VARCHAR(5) DEFAULT '09:00',
+        timezone VARCHAR(100) DEFAULT 'America/New_York',
+        notifications_enabled BOOLEAN DEFAULT true,
+        device_token VARCHAR(500)
       )
+    `;
+
+    // Add new columns to existing users table if they don't exist
+    await sql`
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS notification_time VARCHAR(5) DEFAULT '09:00',
+      ADD COLUMN IF NOT EXISTS timezone VARCHAR(100) DEFAULT 'America/New_York',
+      ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT true,
+      ADD COLUMN IF NOT EXISTS device_token VARCHAR(500)
     `;
 
     // Create user_favorites table for favorite quotes
@@ -109,6 +133,16 @@ export async function initializeDatabase() {
         quote_id INTEGER REFERENCES quotes(id) ON DELETE CASCADE,
         favorited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, quote_id)
+      )
+    `;
+
+    // Create daily_quotes table to track which quote is assigned to each day
+    await sql`
+      CREATE TABLE IF NOT EXISTS daily_quotes (
+        id SERIAL PRIMARY KEY,
+        quote_id INTEGER REFERENCES quotes(id) ON DELETE CASCADE,
+        date DATE UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
 
@@ -222,11 +256,24 @@ export async function checkDuplicateQuote(text: string, author: string | null): 
 }
 
 // User management functions
-export async function registerUser(deviceId: string): Promise<User> {
+export async function registerUser(
+  deviceId: string, 
+  deviceToken?: string,
+  notificationTime?: string,
+  timezone?: string
+): Promise<User> {
   const result = await sql<User>`
-    INSERT INTO users (device_id)
-    VALUES (${deviceId})
-    ON CONFLICT (device_id) DO UPDATE SET device_id = ${deviceId}
+    INSERT INTO users (device_id, device_token, notification_time, timezone)
+    VALUES (
+      ${deviceId}, 
+      ${deviceToken || null},
+      ${notificationTime || '09:00'},
+      ${timezone || 'America/New_York'}
+    )
+    ON CONFLICT (device_id) DO UPDATE SET 
+      device_token = COALESCE(${deviceToken || null}, users.device_token),
+      notification_time = COALESCE(${notificationTime || null}, users.notification_time),
+      timezone = COALESCE(${timezone || null}, users.timezone)
     RETURNING *
   `;
   return result.rows[0];
@@ -238,6 +285,39 @@ export async function getUserByDeviceId(deviceId: string): Promise<User | null> 
     WHERE device_id = ${deviceId}
   `;
   return result.rows[0] || null;
+}
+
+export async function updateUserPreferences(
+  deviceId: string,
+  preferences: {
+    notificationTime?: string;
+    timezone?: string;
+    deviceToken?: string;
+    notificationsEnabled?: boolean;
+  }
+): Promise<User> {
+  const result = await sql<User>`
+    UPDATE users SET
+      notification_time = COALESCE(${preferences.notificationTime || null}, notification_time),
+      timezone = COALESCE(${preferences.timezone || null}, timezone),
+      device_token = COALESCE(${preferences.deviceToken || null}, device_token),
+      notifications_enabled = COALESCE(${preferences.notificationsEnabled ?? null}, notifications_enabled)
+    WHERE device_id = ${deviceId}
+    RETURNING *
+  `;
+  return result.rows[0];
+}
+
+export async function getUsersForNotificationTime(hour: number, minute: number = 0): Promise<User[]> {
+  const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  
+  const result = await sql<User>`
+    SELECT * FROM users 
+    WHERE notification_time = ${timeString}
+    AND notifications_enabled = true
+    AND device_token IS NOT NULL
+  `;
+  return result.rows;
 }
 
 // Favorite management functions
@@ -296,4 +376,44 @@ export async function getAllQuotesWithFavoriteStatus(userId: number, limit: numb
     LIMIT ${limit}
   `;
   return result.rows;
+}
+
+// Daily quote management functions
+export async function getTodayQuote(): Promise<(Quote & DailyQuote) | null> {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  const result = await sql<Quote & DailyQuote>`
+    SELECT q.*, dq.date, dq.id as daily_quote_id, dq.created_at as daily_created_at
+    FROM daily_quotes dq
+    JOIN quotes q ON dq.quote_id = q.id
+    WHERE dq.date = ${today}
+  `;
+  
+  return result.rows[0] || null;
+}
+
+export async function setTodayQuote(quoteId: number): Promise<DailyQuote> {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  const result = await sql<DailyQuote>`
+    INSERT INTO daily_quotes (quote_id, date)
+    VALUES (${quoteId}, ${today})
+    ON CONFLICT (date) DO UPDATE SET quote_id = ${quoteId}
+    RETURNING *
+  `;
+  
+  return result.rows[0];
+}
+
+export async function getQuoteOfTheDay(date?: string): Promise<(Quote & DailyQuote) | null> {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  
+  const result = await sql<Quote & DailyQuote>`
+    SELECT q.*, dq.date, dq.id as daily_quote_id, dq.created_at as daily_created_at
+    FROM daily_quotes dq
+    JOIN quotes q ON dq.quote_id = q.id
+    WHERE dq.date = ${targetDate}
+  `;
+  
+  return result.rows[0] || null;
 }

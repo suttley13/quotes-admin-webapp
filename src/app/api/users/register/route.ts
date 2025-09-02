@@ -4,7 +4,7 @@ import { registerUser, getUserByDeviceId } from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { deviceId } = body;
+    const { deviceId, deviceToken, notificationTime, timezone } = body;
     
     if (!deviceId) {
       return NextResponse.json(
@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
     let user = await getUserByDeviceId(deviceId);
     
     if (!user) {
-      // Create new user
-      user = await registerUser(deviceId);
-      console.log(`New user registered with device ID: ${deviceId}`);
+      // Create new user with preferences
+      user = await registerUser(deviceId, deviceToken, notificationTime, timezone);
+      console.log(`New user registered with device ID: ${deviceId}, timezone: ${timezone}, time: ${notificationTime}`);
     } else {
       console.log(`Existing user found for device ID: ${deviceId}`);
     }
@@ -29,7 +29,11 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         deviceId: user.device_id,
-        createdAt: user.created_at
+        createdAt: user.created_at,
+        notificationTime: user.notification_time,
+        timezone: user.timezone,
+        notificationsEnabled: user.notifications_enabled,
+        deviceToken: user.device_token
       }
     });
   } catch (error) {
