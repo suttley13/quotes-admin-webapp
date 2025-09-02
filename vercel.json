@@ -1,8 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/quotes/generate",
-      "schedule": "0 */2 * * *"
+      "path": "/api/cron/daily-quote-generator",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/send-notifications", 
+      "schedule": "0 * * * *"
     }
   ]
 }
