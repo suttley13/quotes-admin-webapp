@@ -1,19 +1,11 @@
 {
+  "buildCommand": "next build",
   "functions": {
-    "src/app/api/generate-daily-quote/route.ts": {
+    "src/app/api/**/*.ts": {
       "maxDuration": 60
     },
-    "src/app/api/send-daily-notifications/route.ts": {
-      "maxDuration": 60
-    },
-    "src/app/api/cron/daily-quote-generator/route.ts": {
+    "src/app/api/cron/**/*.ts": {
       "maxDuration": 300
-    },
-    "src/app/api/cron/send-notifications/route.ts": {
-      "maxDuration": 300
-    },
-    "src/app/api/users/preferences/route.ts": {
-      "maxDuration": 30
     }
   },
   "crons": [
