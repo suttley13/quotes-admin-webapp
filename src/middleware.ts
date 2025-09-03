@@ -27,6 +27,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/users/preferences',
   '/api/migrate',
   '/api/debug',
+  '/api/debug-users',
   '/api/stats'
 ]);
 
