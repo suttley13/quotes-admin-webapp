@@ -248,6 +248,37 @@ export async function getUserByDeviceId(deviceId: string): Promise<User | null> 
   return result.rows[0] || null;
 }
 
+export async function updateUserPreferences(deviceId: string, preferences: {
+  notificationTime?: string;
+  timezone?: string;
+  deviceToken?: string;
+  notificationsEnabled?: boolean;
+}): Promise<User> {
+  // Get current user first
+  const currentUser = await getUserByDeviceId(deviceId);
+  if (!currentUser) {
+    throw new Error('User not found');
+  }
+  
+  // Use current values as defaults for any undefined preferences
+  const notificationTime = preferences.notificationTime ?? currentUser.notification_time;
+  const timezone = preferences.timezone ?? currentUser.timezone;
+  const deviceToken = preferences.deviceToken ?? currentUser.device_token;
+  const notificationsEnabled = preferences.notificationsEnabled ?? currentUser.notifications_enabled;
+  
+  const result = await sql<User>`
+    UPDATE users 
+    SET notification_time = ${notificationTime},
+        timezone = ${timezone},
+        device_token = ${deviceToken},
+        notifications_enabled = ${notificationsEnabled}
+    WHERE device_id = ${deviceId}
+    RETURNING *
+  `;
+  
+  return result.rows[0];
+}
+
 export async function saveNotificationRecord(quoteId: number, recipientCount: number, successCount: number): Promise<void> {
   await sql`
     INSERT INTO notifications (quote_id, recipient_count, success_count)
