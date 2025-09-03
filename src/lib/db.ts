@@ -221,6 +221,31 @@ export async function registerDeviceToken(token: string, userId?: string): Promi
       active = true,
       created_at = CURRENT_TIMESTAMP
   `;
+  
+  // Also update the users table with the device token if we have a userId
+  if (userId) {
+    await sql`
+      UPDATE users 
+      SET device_token = ${token}
+      WHERE id = ${userId}
+    `;
+  }
+}
+
+export async function registerUser(deviceId: string, deviceToken?: string, notificationTime?: string, timezone?: string): Promise<User> {
+  const result = await sql<User>`
+    INSERT INTO users (device_id, device_token, notification_time, timezone, notifications_enabled)
+    VALUES (${deviceId}, ${deviceToken || null}, ${notificationTime || '09:00'}, ${timezone || 'America/New_York'}, true)
+    RETURNING *
+  `;
+  return result.rows[0];
+}
+
+export async function getUserByDeviceId(deviceId: string): Promise<User | null> {
+  const result = await sql<User>`
+    SELECT * FROM users WHERE device_id = ${deviceId}
+  `;
+  return result.rows[0] || null;
 }
 
 export async function saveNotificationRecord(quoteId: number, recipientCount: number, successCount: number): Promise<void> {
