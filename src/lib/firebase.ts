@@ -132,7 +132,13 @@ export async function sendPushNotification(
       console.log(`Attempting to send message to token: ${token.substring(0, 20)}...`);
       console.log(`Message payload:`, JSON.stringify(message, null, 2));
       
-      const response = await admin.messaging().send(message);
+      // Add timeout to Firebase messaging call
+      const response = await Promise.race([
+        admin.messaging().send(message),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Firebase send timeout')), 10000)
+        )
+      ]) as string;
       successCount++;
       console.log(`Successfully sent notification to token: ${token.substring(0, 20)}..., Response: ${response}`);
     } catch (error: any) {

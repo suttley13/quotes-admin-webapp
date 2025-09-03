@@ -26,8 +26,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get recent quotes for duplicate avoidance (last 100)
-    const recentQuotes = await getAllQuotesWithFavoriteStatus(1, 100); // Use dummy user ID for now
+    // Get recent quotes for duplicate avoidance (last 50 to reduce load)
+    const recentQuotes = await Promise.race([
+      getAllQuotesWithFavoriteStatus(1, 50),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('DB timeout')), 10000))
+    ]) as any[];
     const avoidQuotesPrompt = createAvoidDuplicatesPrompt(recentQuotes);
 
     const requestBody = {
@@ -60,6 +63,7 @@ Give me a quote that is inspiring, profound, or funny.${avoidQuotesPrompt}`
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(30000) // 30 second timeout
     });
 
     if (!response.ok) {
@@ -116,10 +120,21 @@ Give me a quote that is inspiring, profound, or funny.${avoidQuotesPrompt}`
       message: 'Daily quote generated successfully' 
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error generating daily quote:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to generate daily quote';
+    if (error.message?.includes('timeout')) {
+      errorMessage = 'Request timed out - please try again';
+    } else if (error.message?.includes('API key')) {
+      errorMessage = 'OpenAI API key configuration error';
+    } else if (error.message?.includes('quota')) {
+      errorMessage = 'OpenAI API quota exceeded';
+    }
+    
     return NextResponse.json(
-      { success: false, message: 'Failed to generate daily quote' },
+      { success: false, message: errorMessage, error: error.message },
       { status: 500 }
     );
   }
