@@ -21,33 +21,34 @@ export async function POST(request: NextRequest) {
     let totalFailed = 0;
     let totalUsers = 0;
 
-    // Calculate what local time it would be for CST users right now
-    // CST is UTC-6, so if it's 21:00 UTC, it's 15:00 CST
-    const cstHour = (currentUTCHour - 6 + 24) % 24;
-    console.log(`Current UTC time: ${currentUTCHour}:${currentMinute.toString().padStart(2, '0')}, CST time: ${cstHour}:${currentMinute.toString().padStart(2, '0')}`);
+    // Calculate what local time it would be for Central Time users right now
+    // CDT (Daylight Time) is UTC-5, CST (Standard Time) is UTC-6
+    // Currently in September, we're in Daylight Saving Time (CDT = UTC-5)
+    const centralHour = (currentUTCHour - 5 + 24) % 24;
+    console.log(`Current UTC time: ${currentUTCHour}:${currentMinute.toString().padStart(2, '0')}, Central time: ${centralHour}:${currentMinute.toString().padStart(2, '0')}`);
     
-    // Only check the current CST hour and minute
+    // Only check the current CST hour - this will send notifications to users who have their notification time set to this hour
     try {
       const response = await fetch(`${baseUrl}/api/send-daily-notifications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ hour: cstHour, minute: 0 }) // Check for notifications at the top of the hour
+        body: JSON.stringify({ hour: centralHour, minute: 0 }) // Check for users who want notifications at this Central Time hour
       });
 
       const result = await response.json();
 
       if (result.success && result.sentCount > 0) {
-        console.log(`✅ Sent ${result.sentCount} notifications for CST time ${cstHour}:00`);
+        console.log(`✅ Sent ${result.sentCount} notifications for Central time ${centralHour}:00`);
         totalSent += result.sentCount;
         totalFailed += result.failedCount || 0;
         totalUsers += result.totalUsers || 0;
       } else {
-        console.log(`No notifications sent for CST time ${cstHour}:00`);
+        console.log(`No notifications sent for Central time ${centralHour}:00`);
       }
     } catch (error) {
-      console.error(`❌ Error checking CST time ${cstHour}:00:`, error);
+      console.error(`❌ Error checking Central time ${centralHour}:00:`, error);
     }
 
     console.log(`✅ Total notifications sent this hour: ${totalSent}, failed: ${totalFailed}, total users checked: ${totalUsers}`);
