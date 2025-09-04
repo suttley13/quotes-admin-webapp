@@ -21,34 +21,33 @@ export async function POST(request: NextRequest) {
     let totalFailed = 0;
     let totalUsers = 0;
 
-    // Check all possible local hours (0-23) to see if any match the current UTC time
-    // when converted from their respective timezones
-    for (let localHour = 0; localHour < 24; localHour++) {
-      // Test with both minute 0 and current minute for more precision
-      const testMinutes = [0, 15, 30, 45]; // Check common notification times
-      
-      for (const minute of testMinutes) {
-        try {
-          const response = await fetch(`${baseUrl}/api/send-daily-notifications`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ hour: localHour, minute })
-          });
+    // Calculate what local time it would be for CST users right now
+    // CST is UTC-6, so if it's 21:00 UTC, it's 15:00 CST
+    const cstHour = (currentUTCHour - 6 + 24) % 24;
+    console.log(`Current UTC time: ${currentUTCHour}:${currentMinute.toString().padStart(2, '0')}, CST time: ${cstHour}:${currentMinute.toString().padStart(2, '0')}`);
+    
+    // Only check the current CST hour and minute
+    try {
+      const response = await fetch(`${baseUrl}/api/send-daily-notifications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ hour: cstHour, minute: 0 }) // Check for notifications at the top of the hour
+      });
 
-          const result = await response.json();
+      const result = await response.json();
 
-          if (result.success && result.sentCount > 0) {
-            console.log(`✅ Sent ${result.sentCount} notifications for local time ${localHour}:${minute.toString().padStart(2, '0')}`);
-            totalSent += result.sentCount;
-            totalFailed += result.failedCount || 0;
-            totalUsers += result.totalUsers || 0;
-          }
-        } catch (error) {
-          console.error(`❌ Error checking time ${localHour}:${minute.toString().padStart(2, '0')}:`, error);
-        }
+      if (result.success && result.sentCount > 0) {
+        console.log(`✅ Sent ${result.sentCount} notifications for CST time ${cstHour}:00`);
+        totalSent += result.sentCount;
+        totalFailed += result.failedCount || 0;
+        totalUsers += result.totalUsers || 0;
+      } else {
+        console.log(`No notifications sent for CST time ${cstHour}:00`);
       }
+    } catch (error) {
+      console.error(`❌ Error checking CST time ${cstHour}:00:`, error);
     }
 
     console.log(`✅ Total notifications sent this hour: ${totalSent}, failed: ${totalFailed}, total users checked: ${totalUsers}`);
