@@ -232,52 +232,6 @@ export async function registerDeviceToken(token: string, userId?: string): Promi
   }
 }
 
-export async function registerUser(deviceId: string, deviceToken?: string, notificationTime?: string, timezone?: string): Promise<User> {
-  const result = await sql<User>`
-    INSERT INTO users (device_id, device_token, notification_time, timezone, notifications_enabled)
-    VALUES (${deviceId}, ${deviceToken || null}, ${notificationTime || '09:00'}, ${timezone || 'America/New_York'}, true)
-    RETURNING *
-  `;
-  return result.rows[0];
-}
-
-export async function getUserByDeviceId(deviceId: string): Promise<User | null> {
-  const result = await sql<User>`
-    SELECT * FROM users WHERE device_id = ${deviceId}
-  `;
-  return result.rows[0] || null;
-}
-
-export async function updateUserPreferences(deviceId: string, preferences: {
-  notificationTime?: string;
-  timezone?: string;
-  deviceToken?: string;
-  notificationsEnabled?: boolean;
-}): Promise<User> {
-  // Get current user first
-  const currentUser = await getUserByDeviceId(deviceId);
-  if (!currentUser) {
-    throw new Error('User not found');
-  }
-  
-  // Use current values as defaults for any undefined preferences
-  const notificationTime = preferences.notificationTime ?? currentUser.notification_time;
-  const timezone = preferences.timezone ?? currentUser.timezone;
-  const deviceToken = preferences.deviceToken ?? currentUser.device_token;
-  const notificationsEnabled = preferences.notificationsEnabled ?? currentUser.notifications_enabled;
-  
-  const result = await sql<User>`
-    UPDATE users 
-    SET notification_time = ${notificationTime},
-        timezone = ${timezone},
-        device_token = ${deviceToken},
-        notifications_enabled = ${notificationsEnabled}
-    WHERE device_id = ${deviceId}
-    RETURNING *
-  `;
-  
-  return result.rows[0];
-}
 
 export async function saveNotificationRecord(quoteId: number, recipientCount: number, successCount: number): Promise<void> {
   await sql`
