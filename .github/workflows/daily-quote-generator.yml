@@ -1,0 +1,22 @@
+name: Daily Quote Generator
+
+on:
+  schedule:
+    # Run at midnight UTC every day
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  generate-quote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Daily Quote
+        run: |
+          curl -X POST ${{ secrets.VERCEL_URL }}/api/cron/daily-quote-generator \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 60 \
+            --fail
+        env:
+          VERCEL_URL: ${{ secrets.VERCEL_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
