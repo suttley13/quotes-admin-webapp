@@ -29,6 +29,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/debug',
   '/api/debug-users',
   '/api/fix-user-token',
+  '/api/manual-daily-quote',
+  '/api/manual-notifications',
   '/api/stats'
 ]);
 
