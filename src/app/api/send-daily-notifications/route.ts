@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTodayQuote, getUsersForNotificationTime, saveNotificationRecord } from '@/lib/db';
+import { getTodayQuote, getUsersForNotificationTime, saveNotificationRecord, recordQuoteDelivery } from '@/lib/db';
 import { initializeFirebase, sendPushNotification } from '@/lib/firebase';
 
 export async function POST(request: NextRequest) {
@@ -43,10 +43,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`Found ${users.length} users for ${hour}:${minute.toString().padStart(2, '0')}`);
 
-    // Extract device tokens
-    const deviceTokens = users
-      .filter(user => user.device_token && user.notifications_enabled)
-      .map(user => user.device_token!);
+    // Filter users with valid device tokens and get both user data and tokens
+    const validUsers = users.filter(user => user.device_token && user.notifications_enabled);
+    const deviceTokens = validUsers.map(user => user.device_token!);
 
     if (deviceTokens.length === 0) {
       console.log('No valid device tokens found');
@@ -87,6 +86,17 @@ export async function POST(request: NextRequest) {
       deviceTokens.length,
       result.successCount
     );
+
+    // Record delivery for each user (assuming all successful for simplicity)
+    // In a production system, you'd want to track individual delivery success/failure
+    for (const user of validUsers) {
+      try {
+        await recordQuoteDelivery(user.id, todayQuote.id);
+        console.log(`📝 Recorded delivery for user ${user.id}`);
+      } catch (error) {
+        console.error(`❌ Failed to record delivery for user ${user.id}:`, error);
+      }
+    }
 
     console.log(`✅ Sent notifications: ${result.successCount} success, ${result.failureCount} failures`);
 

@@ -3,10 +3,13 @@ import { sql } from '@vercel/postgres';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the most recent quote from the database
+    // Get the most recent quote that has been delivered to users
     const result = await sql`
-      SELECT * FROM quotes 
-      ORDER BY created_at DESC 
+      SELECT q.* FROM quotes q
+      WHERE EXISTS (
+        SELECT 1 FROM notifications n WHERE n.quote_id = q.id AND n.success_count > 0
+      )
+      ORDER BY q.created_at DESC 
       LIMIT 1
     `;
 

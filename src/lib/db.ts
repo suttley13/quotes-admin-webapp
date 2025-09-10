@@ -146,6 +146,17 @@ export async function initializeDatabase() {
       )
     `;
 
+    // Create user_deliveries table to track which quotes have been delivered to which users
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_deliveries (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        quote_id INTEGER REFERENCES quotes(id) ON DELETE CASCADE,
+        delivered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, quote_id)
+      )
+    `;
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization failed:', error);
@@ -237,6 +248,14 @@ export async function saveNotificationRecord(quoteId: number, recipientCount: nu
   await sql`
     INSERT INTO notifications (quote_id, recipient_count, success_count)
     VALUES (${quoteId}, ${recipientCount}, ${successCount})
+  `;
+}
+
+export async function recordQuoteDelivery(userId: number, quoteId: number): Promise<void> {
+  await sql`
+    INSERT INTO user_deliveries (user_id, quote_id)
+    VALUES (${userId}, ${quoteId})
+    ON CONFLICT (user_id, quote_id) DO NOTHING
   `;
 }
 
@@ -382,6 +401,10 @@ export async function getAllQuotesWithFavoriteStatus(userId: number, limit: numb
            CASE WHEN uf.id IS NOT NULL THEN true ELSE false END as is_favorited
     FROM quotes q
     LEFT JOIN user_favorites uf ON q.id = uf.quote_id AND uf.user_id = ${userId}
+    WHERE EXISTS (
+      SELECT 1 FROM user_deliveries ud 
+      WHERE ud.user_id = ${userId} AND ud.quote_id = q.id
+    )
     ORDER BY q.created_at DESC
     LIMIT ${limit}
   `;
