@@ -300,9 +300,9 @@ export async function registerUser(
       ${timezone || 'America/New_York'}
     )
     ON CONFLICT (device_id) DO UPDATE SET 
-      device_token = COALESCE(${deviceToken || null}, users.device_token),
-      notification_time = COALESCE(${notificationTime || null}, users.notification_time),
-      timezone = COALESCE(${timezone || null}, users.timezone)
+      device_token = COALESCE(EXCLUDED.device_token, users.device_token),
+      notification_time = COALESCE(EXCLUDED.notification_time, users.notification_time),
+      timezone = COALESCE(EXCLUDED.timezone, users.timezone)
     RETURNING *
   `;
   return result.rows[0];
