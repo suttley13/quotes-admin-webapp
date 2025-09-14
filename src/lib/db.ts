@@ -296,7 +296,7 @@ export async function registerUser(
     VALUES (
       ${deviceId}, 
       ${deviceToken || null},
-      ${notificationTime || '09:00'},
+      ${notificationTime || '07:00'},
       ${timezone || 'America/New_York'}
     )
     ON CONFLICT (device_id) DO UPDATE SET 
