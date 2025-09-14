@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerUser, getUserByDeviceId } from '@/lib/db';
+import { registerUser } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,16 +13,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user already exists
-    let user = await getUserByDeviceId(deviceId);
-    
-    if (!user) {
-      // Create new user with preferences
-      user = await registerUser(deviceId, deviceToken, notificationTime, timezone);
-      console.log(`New user registered with device ID: ${deviceId}, timezone: ${timezone}, time: ${notificationTime}`);
-    } else {
-      console.log(`Existing user found for device ID: ${deviceId}`);
-    }
+    // Always call registerUser - it uses ON CONFLICT to update existing users
+    const user = await registerUser(deviceId, deviceToken, notificationTime, timezone);
+    console.log(`User registered/updated with device ID: ${deviceId}, timezone: ${timezone}, time: ${notificationTime}, deviceToken: ${deviceToken ? 'present' : 'null'}`);
 
     return NextResponse.json({ 
       success: true, 
